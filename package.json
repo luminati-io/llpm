@@ -1,5 +1,5 @@
 {
-  "name": "llpm",
+  "name": "@luminati-io/llpm",
   "version": "1.0.0",
   "description": "Light LPM",
   "main": "index.js",
@@ -9,7 +9,7 @@
   "devDependencies": {},
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/luminati-io/llpm.git"
+    "url": "git://github.com/luminati-io/llpm.git"
   },
   "author": "Krzysztof Fudali",
   "bin": {
