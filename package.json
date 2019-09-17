@@ -1,0 +1,23 @@
+{
+  "name": "llpm",
+  "version": "1.0.0",
+  "description": "Light LPM",
+  "main": "index.js",
+  "dependencies": {
+    "yargs": "^14.0.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/luminati-io/llpm.git"
+  },
+  "author": "Krzysztof Fudali",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/luminati-io/llpm/issues"
+  },
+  "homepage": "https://github.com/luminati-io/llpm#readme"
+}
