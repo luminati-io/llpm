@@ -7,14 +7,18 @@
     "yargs": "^14.0.0"
   },
   "devDependencies": {},
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/luminati-io/llpm.git"
   },
   "author": "Krzysztof Fudali",
+  "bin": {
+    "llpm": "./index.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "llpm": "./index.js"
+  },
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/luminati-io/llpm/issues"
