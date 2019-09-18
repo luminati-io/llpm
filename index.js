@@ -7,6 +7,10 @@ const args = process.argv.slice(2).map(String);
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
+process.env.LOG_LEVEL = process.env.LOG_LEVEL || 'info';
+process.env.LOG_TIME = 'abs';
+const log = require('log');
+require('log-node')();
 
 const load_json = file_path=>{
     let s;
@@ -15,10 +19,10 @@ const load_json = file_path=>{
         s = s.replace(/^\uFEFF/, '');
         if (!s)
             return {};
-        console.log(`Loaded config ${file_path}`);
+        log.notice(`Loaded config ${file_path}`);
     } catch(e){
-        console.error('Could not load file %s', e.message);
-        console.log('Using empty config');
+        log.error('Could not load file %s', e.message);
+        log.notice('Using empty config');
         return {};
     }
     try {
@@ -43,6 +47,7 @@ const defaults = {
 };
 
 const run = ()=>{
+    log.notice('Running L-LPM...');
     const argv = yargs(args).default(defaults).argv;
     const config = load_config(argv.config);
     const proxies = config.proxies.map(p=>
@@ -51,11 +56,14 @@ const run = ()=>{
     proxies.forEach(proxy=>{
         proxies_running[proxy.port] = new Server(proxy).listen();
     });
+    process.on('uncaughtException', e=>{
+        log.error(e.stack);
+    });
     ['SIGTERM', 'SIGINT', 'uncaughtException'].forEach(sig=>{
         process.on(sig, e=>{
             for (const port in proxies_running)
                 proxies_running[port].stop();
-            setTimeout(()=>process.exit(), 5000);
+            setTimeout(()=>process.exit(), 1000);
         });
     });
 };

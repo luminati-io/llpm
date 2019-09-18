@@ -4,6 +4,7 @@
 const https = require('https');
 const http = require('http');
 const http_shutdown = require('http-shutdown');
+const log = require('log');
 
 const ensure_socket_close = socket=>{
     if (socket instanceof http.ClientRequest ||
@@ -70,6 +71,7 @@ class Server {
         this.request_handler = this.request_handler.bind(this);
         this.send_request = this.send_request.bind(this);
         this.reply_error = this.reply_error.bind(this);
+        this.abort_proxy_req = this.abort_proxy_req.bind(this);
         this.session_id = 1;
         this.agent = new https.Agent({
             keepAlive: true,
@@ -85,13 +87,13 @@ class Server {
         }).on('connection', socket=>socket.setNoDelay());
         http_shutdown(this.server);
         this.server.on('error', e=>{
-            console.log('server error: %s', e.message);
+            log.error('server error: %s', e.message);
         });
         this.server.on('connect', (req, res, head)=>{
             this.handler(req, res, head);
         });
         this.server.listen(this.opt.port, '0.0.0.0', ()=>{
-            console.log('Port %s ready', this.opt.port);
+            log.notice('Port %s ready', this.opt.port);
         });
         return this;
     }
@@ -100,12 +102,12 @@ class Server {
             return;
         this.stopped = true;
         this.server.forceShutdown(()=>{
-            console.log('server %s stopped', this.opt.port);
+            log.notice('server %s stopped', this.opt.port);
         });
     }
     handler(req, res, head){
         res.on('error', e=>{
-            console.log('client: %s', e.message);
+            log.error('client: %s', e.message);
         });
         this.send_request(req, res, head);
     }
@@ -126,18 +128,18 @@ class Server {
     }
     handle_proxy_resp(req, res, proxy){
         return proxy_res=>{
+            log.info('%s %s: %s', req.method, req.url, proxy_res.statusCode);
             write_http_reply(res, proxy_res);
             proxy_res.pipe(res);
-            proxy_res.on('error', e=>console.log('proxy_res e %s', e.message));
+            proxy_res.on('error', e=>log.error('proxy_res e %s', e.message));
         };
     }
     handle_proxy_connect(req, res, proxy, head){
         return (proxy_res, socket, proxy_head)=>{
+            log.info('%s %s: %s', req.method, req.url, proxy_res.statusCode);
             write_http_reply(res, proxy_res, {});
             if (proxy_res.statusCode!=200)
             {
-                console.log('%s %s - %s', req.method, req.url,
-                    proxy_res.statusCode);
                 res.end();
                 return;
             }
@@ -152,10 +154,11 @@ class Server {
             });
         };
     }
-    handle_proxy_error(res){
+    handle_proxy_error(req, res, proxy){
         return err=>{
-            console.log('proxy error: %s', err.message);
+            log.error('proxy error: %s', err.message);
             this.reply_error(res, err);
+            this.abort_proxy_req(req, proxy);
         };
     }
     handle_proxy_timeout(proxy){
@@ -164,14 +167,25 @@ class Server {
         };
     }
     request_handler(req, res, proxy, head){
+        req.on('close', ()=>{
+            this.abort_proxy_req(req, proxy);
+            log.debug('req closed');
+        });
+        res.on('close', ()=>{
+            this.abort_proxy_req(req, proxy);
+            log.debug('res closed');
+        });
         proxy.setTimeout(120*1000);
         proxy.on('response', this.handle_proxy_resp(req, res, proxy))
         .on('connect', this.handle_proxy_connect(req, res, proxy, head))
-        .on('error', this.handle_proxy_error(res))
+        .on('error', this.handle_proxy_error(req, res, proxy))
         .once('timeout', this.handle_proxy_timeout(proxy))
-        .on('close', ()=>null);
+        .on('close', ()=>{
+            log.debug('proxy closed');
+        });
     }
     send_request(req, res, head){
+        log.debug('%s %s', req.method, req.url);
         const proxy = https.request({
             agent: this.agent,
             host: 'zproxy.lum-superproxy.io',
@@ -209,6 +223,11 @@ class Server {
         } catch(e){
             console.error('could not send head: %s\n%s', e.message);
         }
+    }
+    abort_proxy_req(req, proxy){
+        req.unpipe(proxy);
+        proxy.abort();
+        proxy.destroy();
     }
 }
 
