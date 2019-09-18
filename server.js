@@ -99,7 +99,7 @@ class Server {
         if (this.stopped)
             return;
         this.stopped = true;
-        this.server.shutdown(()=>{
+        this.server.forceShutdown(()=>{
             console.log('server %s stopped', this.opt.port);
         });
     }
@@ -113,7 +113,7 @@ class Server {
         const {customer, zone} = this.opt;
         return `lum-customer-${customer}-zone-${zone}-session-`+
             this.session_id++;
-    };
+    }
     get_headers(req_headers, res){
         const username = this.get_username();
         res.cred = username;
@@ -136,7 +136,7 @@ class Server {
             write_http_reply(res, proxy_res, {});
             if (proxy_res.statusCode!=200)
             {
-                console.log('%s %s - %s', req.method, ctx.url,
+                console.log('%s %s - %s', req.method, req.url,
                     proxy_res.statusCode);
                 res.end();
                 return;

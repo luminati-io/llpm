@@ -8,14 +8,14 @@ const path = require('path');
 const os = require('os');
 const fs = require('fs');
 
-const load_json = path=>{
+const load_json = file_path=>{
     let s;
     try {
-        s = fs.readFileSync(path).toString();
+        s = fs.readFileSync(file_path).toString();
         s = s.replace(/^\uFEFF/, '');
         if (!s)
             return {};
-        console.log(`Loaded config ${path}`);
+        console.log(`Loaded config ${file_path}`);
     } catch(e){
         console.error('Could not load file %s', e.message);
         console.log('Using empty config');
@@ -29,10 +29,10 @@ const load_json = path=>{
             +`${e.message}`;
         throw msg;
     }
-}
+};
 
-const load_config = path=>{
-    const config = load_json(path);
+const load_config = file_path=>{
+    const config = load_json(file_path);
     return Object.assign({_defaults: {}, proxies: []}, config);
 };
 
@@ -55,6 +55,7 @@ const run = ()=>{
         process.on(sig, e=>{
             for (const port in proxies_running)
                 proxies_running[port].stop();
+            setTimeout(()=>process.exit(), 5000);
         });
     });
 };
