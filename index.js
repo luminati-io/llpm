@@ -40,11 +40,11 @@ const load_config = file_path=>{
     return Object.assign({_defaults: {}, proxies: []}, config);
 };
 
-const work_dir = args.dir ||
-    path.resolve(os.homedir(), 'luminati_proxy_manager');
 const defaults = {
-    config: path.resolve(work_dir, '.luminati.json'),
+    dir: path.resolve(os.homedir(), 'luminati_proxy_manager'),
 };
+Object.assign(defaults, yargs(args).default(defaults).argv);
+defaults.config = path.resolve(defaults.dir, '.luminati.json');
 
 const run = ()=>{
     log.notice('Running L-LPM...');
