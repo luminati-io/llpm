@@ -42,6 +42,8 @@ const load_config = file_path=>{
 
 const defaults = {
     dir: path.resolve(os.homedir(), 'luminati_proxy_manager'),
+    proxy: 'zproxy.lum-superproxy.io',
+    proxy_port: 22225,
 };
 Object.assign(defaults, yargs(args).default(defaults).argv);
 defaults.config = path.resolve(defaults.dir, '.luminati.json');
@@ -51,7 +53,7 @@ const run = ()=>{
     const argv = yargs(args).default(defaults).argv;
     const config = load_config(argv.config);
     const proxies = config.proxies.map(p=>
-        Object.assign({}, config._defaults, p));
+        Object.assign({}, argv, config._defaults, p));
     const proxies_running = {};
     proxies.forEach(proxy=>{
         proxies_running[proxy.port] = new Server(proxy).listen();

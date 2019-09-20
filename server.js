@@ -109,6 +109,9 @@ class Server {
         res.on('error', e=>{
             log.error('client: %s', e.message);
         });
+        req.on('error', err=>{
+            log.error('req error: %s', err.message);
+        });
         this.send_request(req, res, head);
     }
     get_username(){
@@ -147,16 +150,16 @@ class Server {
             socket.write(head);
             socket.pipe(res).pipe(socket);
             proxy_res.on('error', e=>{
-                console.error('proxy_res error after connect: %s', e.message);
+                log.error('AFTER CONNECT: proxy_res error: %s', e.message);
             });
             socket.on('error', e=>{
-                console.error('socket error: %s', e.message);
+                log.error('AFTER CONNECT: socket error: %s', e.message);
             });
         };
     }
     handle_proxy_error(req, res, proxy){
         return err=>{
-            log.error('proxy error: %s', err.message);
+            log.error('%s %s: %s', req.method, req.url, err.message);
             this.reply_error(res, err);
             this.abort_proxy_req(req, proxy);
         };
@@ -167,13 +170,13 @@ class Server {
         };
     }
     request_handler(req, res, proxy, head){
-        req.on('close', ()=>{
-            this.abort_proxy_req(req, proxy);
-            log.debug('req closed');
-        });
         res.on('close', ()=>{
             this.abort_proxy_req(req, proxy);
             log.debug('res closed');
+        });
+        req.on('close', ()=>{
+            this.abort_proxy_req(req, proxy);
+            log.debug('req closed');
         });
         proxy.setTimeout(120*1000);
         proxy.on('response', this.handle_proxy_resp(req, res, proxy))
@@ -188,8 +191,8 @@ class Server {
         log.debug('%s %s', req.method, req.url);
         const proxy = https.request({
             agent: this.agent,
-            host: 'zproxy.lum-superproxy.io',
-            port: 22225,
+            host: this.opt.proxy,
+            port: this.opt.proxy_port,
             method: req.method,
             path: req.url,
             headers: this.get_headers(req.headers, res),
@@ -208,7 +211,7 @@ class Server {
         this.request_handler(req, res, proxy, head);
     }
     reply_error(res, err){
-        if (res.ended)
+        if (res.ended || res.destroyed)
             return;
         const headers = {
             Connection: 'close',
